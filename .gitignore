@@ -1,0 +1,33 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.env
+.env.*
+.DS_Store
+
+# Salidas y tracking
+mlruns/
+models/
+output/
+notebooks/.ipynb_checkpoints/
+
+# Datos (mantener estructura con .gitkeep)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Archivos locales pesados
+*.log
+*.tmp
+*.pkl
+*.json
+*.csv
+*.xlsx
+
+# Config de IDE
+.vscode/
+.idea/

@@ -1,0 +1,14 @@
+artifact_uri: file:///D:/curso_mlops/proyecto_mlops/mlruns/102486691427448010/5ab342092f3c4bfcbe4b44410dd4431e/artifacts
+end_time: 1761957778070
+entry_point_name: ''
+experiment_id: '102486691427448010'
+lifecycle_stage: active
+run_id: 5ab342092f3c4bfcbe4b44410dd4431e
+run_name: xgboost_local_run
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761957766897
+status: 3
+tags: []
+user_id: rodri

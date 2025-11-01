@@ -1,0 +1,6 @@
+artifact_location: file:///D:/curso_mlops/proyecto_mlops/mlruns/102486691427448010
+creation_time: 1761929881979
+experiment_id: '102486691427448010'
+last_update_time: 1761929881979
+lifecycle_stage: active
+name: xgboost_local_experiment_RH

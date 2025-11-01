@@ -1,6 +1,3 @@
-# =========================
-# Celda — Entrenamiento, evaluación y tracking con MLflow (versión local segura)
-# =========================
 
 import pandas as pd
 import numpy as np
@@ -9,36 +6,35 @@ from sklearn.metrics import roc_auc_score, log_loss, accuracy_score, classificat
 import joblib
 import os
 
-# --- NUEVO: MLflow ---
+
 import mlflow
 import mlflow.xgboost
 
-# -------- Configuración MLflow (LOCAL) --------
-# Guardará los experimentos en una carpeta local dentro de tu proyecto
+
 MLFLOW_TRACKING_DIR = r"D:\curso_mlops\proyecto_mlops\mlruns"
 mlflow.set_tracking_uri("file:///" + MLFLOW_TRACKING_DIR.replace("\\", "/"))
 mlflow.set_experiment("xgboost_local_experiment_RH")
 
-# -------- Rutas de entrada --------
+
 DATA_DIR = r"D:\curso_mlops\proyecto_mlops\data\processed"
 train_path = f"{DATA_DIR}/train.csv"
 valid_path = f"{DATA_DIR}/valid.csv"
 test_path  = f"{DATA_DIR}/test.csv"
 
-# -------- Carga de datos --------
+
 train = pd.read_csv(train_path)
 valid = pd.read_csv(valid_path)
 test  = pd.read_csv(test_path)
 
 print(f"Train: {train.shape} | Valid: {valid.shape} | Test: {test.shape}")
 
-# -------- Separar features y target --------
+
 TARGET_COL = "target"
 X_train, y_train = train.drop(columns=[TARGET_COL]), train[TARGET_COL]
 X_valid, y_valid = valid.drop(columns=[TARGET_COL]), valid[TARGET_COL]
 X_test,  y_test  = test.drop(columns=[TARGET_COL]),  test[TARGET_COL]
 
-# -------- Entrenamiento (XGBoost) --------
+
 params = {
     "eval_metric": "logloss",
     "tree_method": "hist",      # usa GPU si está disponible
@@ -52,7 +48,7 @@ params = {
 
 xgb_model = xgb.XGBClassifier(**params)
 
-# -------- Función de evaluación --------
+
 def eval_binary(model, X, y, name="split"):
     y_prob = model.predict_proba(X)[:, 1]
     y_pred = (y_prob >= 0.5).astype(int)
@@ -69,16 +65,16 @@ def eval_binary(model, X, y, name="split"):
     print(classification_report(y, y_pred, digits=4))
     return metrics
 
-# -------- Tracking con MLflow --------
+
 with mlflow.start_run(run_name="xgboost_local_run"):
 
-    # Registrar parámetros del modelo
+    
     mlflow.log_params(params)
 
-    # Entrenar
+    
     xgb_model.fit(X_train, y_train)
 
-    # Evaluar
+    
     metrics_valid = eval_binary(xgb_model, X_valid, y_valid, "valid")
     metrics_test  = eval_binary(xgb_model, X_test,  y_test,  "test")
 
@@ -87,9 +83,7 @@ with mlflow.start_run(run_name="xgboost_local_run"):
         for k, v in metrics.items():
             mlflow.log_metric(f"{split_name}_{k}", v)
 
-    # =========================
-    # Guardar modelo entrenado
-    # =========================
+
     OUTPUT_DIR = r"D:\curso_mlops\proyecto_mlops\models"
     MODEL_NAME = "xgb_model"
 
@@ -98,14 +92,14 @@ with mlflow.start_run(run_name="xgboost_local_run"):
     json_path = os.path.join(OUTPUT_DIR, f"{MODEL_NAME}.json")
     pkl_path  = os.path.join(OUTPUT_DIR, f"{MODEL_NAME}.pkl")
 
-    # Guardar igual que antes
+ 
     xgb_model.save_model(json_path)
     joblib.dump(xgb_model, pkl_path)
 
     print(f"✅ Modelo guardado en formato XGBoost: {json_path}")
     print(f"✅ Modelo guardado en formato pickle: {pkl_path}")
 
-    # Registrar archivos y modelo en MLflow (no cambia tu guardado local)
+    
     mlflow.log_artifact(json_path)
     mlflow.log_artifact(pkl_path)
     mlflow.xgboost.log_model(xgb_model, artifact_path="model")

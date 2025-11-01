@@ -1,20 +1,18 @@
-# =========================
-# Celda 1 — Pre-procesamiento + Split estratificado por periodo
-# =========================
+
 import re
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
-# -------- Parámetros --------
+
 DATA_PATH   = r"D:\curso_mlops\proyecto_mlops\data\raw\Data_CU_venta.csv"
 TARGET_COL  = "target"
 PERIOD_COL  = "p_codmes"
 MISSING_TH  = 0.80                 # umbral: eliminar columnas con >80% NaN
 RANDOM_SEED = 42
 
-# -------- Utilidades --------
+
 def load_csv_flexible(file_path: str) -> pd.DataFrame:
     """Carga flexible de CSV (delimitador auto y tolerante a líneas malas)."""
     return pd.read_csv(
@@ -87,13 +85,12 @@ def encode_categoricals(df: pd.DataFrame, suffix="_enc") -> pd.DataFrame:
         out[c + suffix] = le.fit_transform(out[c].astype(str))
     return out
 
-# -------- Pipeline de pre-procesamiento --------
+
 df = load_csv_flexible(DATA_PATH)
 
-# Asegurar tipos básicos clave
-# p_codmes puede venir como float: lo llevamos a int si aplica.
+
 if PERIOD_COL in df.columns:
-    # Si trae NaN, imputamos con la moda del periodo antes de convertir
+
     if df[PERIOD_COL].isna().any():
         moda_periodo = df[PERIOD_COL].mode(dropna=True)
         if not moda_periodo.empty:
@@ -101,38 +98,38 @@ if PERIOD_COL in df.columns:
     # Convertir a entero (si es convertible) para estabilidad del estrato
     df[PERIOD_COL] = pd.to_numeric(df[PERIOD_COL], errors="coerce").astype("Int64")
 
-# Limpieza por faltantes
+
 df = drop_columns_by_missing(df, MISSING_TH)
 
-# Imputación
+
 df = impute_missing(df)
 
-# Nombres de columnas
+
 df = clean_column_names(df)
 
-# Codificación de categóricas
+
 df = encode_categoricals(df, suffix="_enc")
 
-# Target a entero si aplica
+
 if TARGET_COL in df.columns:
     df[TARGET_COL] = pd.to_numeric(df[TARGET_COL], errors="coerce").fillna(0).astype(int)
 else:
     raise ValueError(f"No se encontró la columna objetivo '{TARGET_COL}'.")
 
-# Selección de columnas numéricas para modelado (features)
+
 num_like = df.select_dtypes(include=["number", "boolean"]).columns.tolist()
-# Excluir explícitamente el target de X
+
 feature_cols = [c for c in num_like if c != TARGET_COL]
 
-# Convertir booleanos "nullable" a int8
+
 for c in df[feature_cols].select_dtypes(include=["boolean"]).columns:
     df[c] = df[c].astype("int8")
 
-# -------- Split estratificado por periodo --------
+
 if PERIOD_COL not in df.columns:
     raise ValueError(f"No se encontró la columna de periodo '{PERIOD_COL}' para el split estratificado.")
 
-# Determinar último periodo (test)
+
 last_period = int(pd.Series(df[PERIOD_COL].dropna()).max())
 df_hist = df[df[PERIOD_COL] != last_period].copy()
 df_test = df[df[PERIOD_COL] == last_period].copy()
@@ -140,7 +137,7 @@ df_test = df[df[PERIOD_COL] == last_period].copy()
 if df_hist.empty or df_test.empty:
     raise ValueError("Revisa 'p_codmes': no hay historial suficiente o no existe un último periodo para test.")
 
-# 70/30 en histórico, estratificando por periodo
+
 X_hist = df_hist[feature_cols].copy()
 y_hist = df_hist[TARGET_COL].copy()
 
@@ -151,11 +148,11 @@ X_train, X_valid, y_train, y_valid = train_test_split(
     stratify=df_hist[PERIOD_COL]  # estratificado por periodo
 )
 
-# Test: solo último periodo
+
 X_test = df_test[feature_cols].copy()
 y_test = df_test[TARGET_COL].copy()
 
-# Inspección rápida (opcional)
+
 print(f"Último periodo (test): {last_period}")
 print("Distribución por periodo en histórico (antes del split):")
 print(df_hist[PERIOD_COL].value_counts().sort_index())
@@ -163,13 +160,7 @@ print(df_hist[PERIOD_COL].value_counts().sort_index())
 print("\nTamaños ->",
       f"train: {X_train.shape}, valid: {X_valid.shape}, test: {X_test.shape}")
 
-# Variables que usará la Celda 2:
-# - X_train, y_train
-# - X_valid, y_valid
-# - X_test,  y_test
-# - feature_cols
 
-# -------- Exportar splits a CSV --------
 OUTPUT_DIR = r"D:\curso_mlops\proyecto_mlops\data\processed"
 
 X_train.assign(target=y_train).to_csv(f"{OUTPUT_DIR}/train.csv", index=False)
